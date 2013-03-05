@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="ISO-8859-15" ?>
+<ElementName Attribute="This is a quoted string, surrounded by quotation marks.">
+    <!-- This is a Comment, surrounded by Comment Delimiters.-->
+    <Text Attribute="{x:MarkupExtension}">This is Text.</Text>
+    <![CDATA[This is Character Data.]]>
+</ElementName>
