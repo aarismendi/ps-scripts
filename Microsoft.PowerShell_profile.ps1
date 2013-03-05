@@ -1,6 +1,7 @@
-#region Alias Helpers
-New-Alias which get-command
-#endregion
+function which ($command) {
+    Get-Command -Name $command -ErrorAction SilentlyContinue | 
+        Select-Object -ExpandProperty Path -ErrorAction SilentlyContinue
+}
 
 #region History
 $PSProfileFolder = Split-Path -Path $PROFILE
@@ -24,7 +25,7 @@ Register-EngineEvent PowerShell.Exiting -Action {
 function prompt {
 	Write-Host ('{') -NoNewline 
 	Write-Host ('{0} ' -f ((Get-History -Count 1).Id + 1)) -NoNewLine -ForegroundColor Red
-	Write-Host ('{0}'   -f (get-date -Format "hh:mm")) -NoNewLine -Fore Cyan
+	Write-Host ('{0}'  -f (get-date -Format "hh:mm")) -NoNewLine -Fore Cyan
 	Write-Host (' {0}' -f $pwd) -ForegroundColor Gray -NoNewline
 	Write-Host ('}') 
 }
