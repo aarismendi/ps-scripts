@@ -1,3 +1,7 @@
+#region Alias Helpers
+New-Alias which get-command
+#endregion
+
 #region History
 $PSProfileFolder = Split-Path -Path $PROFILE
 $PSHistoryPath = "$PSProfileFolder\History.csv"
