@@ -22,28 +22,41 @@
         $psISE.Options.OutputPaneBackgroundColor = '#141414'
         $psISE.Options.OutputPaneTextBackgroundColor = '#141414'
         $psISE.Options.OutputPaneForegroundColor = '#f8f8f8'
+        $psISE.Options.CommandPaneBackgroundColor = '#141414'
+    } else {
+        $psise.Options.ConsolePaneBackgroundColor = '#141414'
+        $psise.Options.ConsolePaneTextBackgroundColor = '#141414'
+        $psise.Options.ConsolePaneForegroundColor = '#f8f8f8'
     }
-     
-    $psISE.Options.CommandPaneBackgroundColor = '#141414' 
+
     $psISE.Options.ScriptPaneBackgroundColor = '#141414'
-    $psise.Options.TokenColors['Attribute'] = '#f8f8f8'
-    $psise.Options.TokenColors['Command'] = '#dad085'
-    $psise.Options.TokenColors['CommandArgument'] = '#f8f8f8' #Function name too.
-    $psise.Options.TokenColors['CommandParameter'] = '#dad085'
-    $psise.Options.TokenColors['Comment'] = '#5f5a60'
-    $psise.Options.TokenColors['GroupEnd'] = '#f8f8f8'
-    $psise.Options.TokenColors['GroupStart'] = '#f8f8f8'
-    $psise.Options.TokenColors['Keyword'] = '#cda869'
-    $psise.Options.TokenColors['LineContinuation'] = '#f8f8f8'
-    $psise.Options.TokenColors['LoopLabel'] = '#f8f8f8'
-    $psise.Options.TokenColors['Member'] = '#f8f8f8'
-    $psise.Options.TokenColors['NewLine'] = '#cda869'
-    $psise.Options.TokenColors['Number'] ='#cf6a4c'
-    $psise.Options.TokenColors['Operator'] = '#cda869'
-    $psise.Options.TokenColors['Position'] = '#f8f8f8'
-    $psise.Options.TokenColors['StatementSeparator'] = '#f8f8f8'
-    $psise.Options.TokenColors['String'] = '#8f9d6a'
-    $psise.Options.TokenColors['Type'] = '#f8f8f8'
-    $psise.Options.TokenColors['Unknown'] = '#f8f8f8'
-    $psise.Options.TokenColors['Variable'] = '#7587a6'
+    $color_map = @{
+        'Attribute' = '#f8f8f8'
+        'Command' = '#dad085'
+        'CommandArgument' = '#f8f8f8' #Function name too.
+        'CommandParameter' = '#dad085'
+        'Comment' = '#5f5a60'
+        'GroupEnd' = '#f8f8f8'
+        'GroupStart' = '#f8f8f8'
+        'Keyword' = '#cda869'
+        'LineContinuation' = '#f8f8f8'
+        'LoopLabel' = '#f8f8f8'
+        'Member' = '#f8f8f8'
+        'NewLine' = '#cda869'
+        'Number' = '#cf6a4c'
+        'Operator' = '#cda869'
+        'Position' = '#f8f8f8'
+        'StatementSeparator' = '#f8f8f8'
+        'String' = '#8f9d6a'
+        'Type' = '#f8f8f8'
+        'Unknown' = '#f8f8f8'
+        'Variable' = '#7587a6'
+    }
+    foreach ($token_name in $color_map.Keys) {
+        $color_value = $color_map.Item($token_name)
+        $psise.Options.TokenColors[$token_name] = $color_value
+        if (-not $is_IseV2) {
+            $psise.Options.ConsoleTokenColors[$token_name] = $color_value
+        }
+    }
 }
