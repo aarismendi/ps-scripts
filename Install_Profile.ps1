@@ -20,6 +20,9 @@ $ErrorActionPreference = 'Stop'
 #region Install profiles.
 $this_path = Split-Path ((Get-Variable MyInvocation -Scope 0).Value).MyCommand.Path
 $profile_dir = Split-Path $PROFILE
+if (-not (Test-Path -Path $profile_dir -PathType Container)) {
+    New-Item -Path $profile_dir -ItemType Directory -Force
+}
 $profile_files = @(
 	'Microsoft.PowerShellISE_profile.ps1'
 	'Microsoft.PowerShell_profile.ps1'
