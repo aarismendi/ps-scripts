@@ -30,6 +30,7 @@ if ($is_IseV2) {
 }
 
 $psISE.Options.ScriptPaneBackgroundColor = '#141414'
+$psISE.Options.ScriptPaneForegroundColor = '#f8f8f8'
 $color_map = @{
     Attribute = '#f8f8f8'
     Command = '#dad085'
