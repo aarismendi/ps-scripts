@@ -1,3 +1,20 @@
+function Test-IsAdmin {
+	try {
+		$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+		$principal = New-Object Security.Principal.WindowsPrincipal -ArgumentList $identity
+		return $principal.IsInRole( [Security.Principal.WindowsBuiltInRole]::Administrator )
+	} catch {
+		throw "Failed to determine if the current user has elevated privileges. The error was: '$_'." -f $_
+	}
+}
+
+if (-not (Test-IsAdmin)) {
+	#Re-launch elevated if not already running elevated.
+	$powershellArgs = '-noprofile -nologo -executionpolicy bypass -file "{0}"' -f $MyInvocation.MyCommand.Path
+	Start-Process -FilePath 'powershell.exe' -ArgumentList $powershellArgs -Verb RunAs
+	exit 
+}
+
 $ErrorActionPreference = 'Stop'
 
 #region Install profiles.
@@ -33,6 +50,10 @@ dir -Path $font_path -Filter *.ttf | % {
     $font_col = New-Object System.Drawing.Text.PrivateFontCollection
     $font_col.AddFontFile($_.FullName)
     $font_name = $font_col.Families[0].Name
-    New-ItemProperty -Path $console_font_reg_path -Name $console_font_id -Value $font_name
+    
+    $is_registered = (Get-ItemProperty $console_font_reg_path).psbase.properties | ? {$_.Value -eq $font_name}    
+    if (-not $is_registered) {
+        New-ItemProperty -Path $console_font_reg_path -Name $console_font_id -Value $font_name
+    }
 }
 #endregion
