@@ -31,6 +31,8 @@ pop-location
 
 #region Install Fonts.
 Add-Type -AssemblyName System.Drawing | Out-Null
+$fonts = New-Object System.Drawing.Text.InstalledFontCollection
+$font_fams = $fonts.Families
 $console_font_reg_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console\TrueTypeFont'
 $console_font_id = Get-ItemProperty $console_font_reg_path | % {
         $_.psbase.properties | ? {$_.Name.StartsWith('0')} 
@@ -40,13 +42,15 @@ $FONTS = 0x14
 $objShell = New-Object -ComObject Shell.Application
 $objFolder = $objShell.Namespace($FONTS)
 dir -Path $font_path -Filter *.ttf | % {
-    $objFolder.CopyHere($_.FullName)
-    $console_font_id += '0'
-    
     $font_col = New-Object System.Drawing.Text.PrivateFontCollection
     $font_col.AddFontFile($_.FullName)
     $font_name = $font_col.Families[0].Name
     
+    if (-not $font_fams -contains $font_name) {
+        $objFolder.CopyHere($_.FullName)
+    }
+
+    $console_font_id += '0'
     $is_registered = (Get-ItemProperty $console_font_reg_path).psbase.properties | ? {$_.Value -eq $font_name}    
     if (-not $is_registered) {
         New-ItemProperty -Path $console_font_reg_path -Name $console_font_id -Value $font_name
