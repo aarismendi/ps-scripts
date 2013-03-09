@@ -24,7 +24,7 @@ push-location $this_path
 foreach ($file in $profile_files) {
 	$src_file = (Get-Item $file).FullName
 	copy-item $src_file $profile_dir -Force
-    Unblock-File -FilePath $src_file
+    Unblock-File $src_file
 }
 pop-location
 #endregion
