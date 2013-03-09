@@ -23,16 +23,16 @@ function Unblock-File {
 	process {
 		try {
             $FilePath = (Resolve-Path -Path $FilePath -ErrorAction Stop).Path
-			if (Test-Path -Path $FilePath -PathType Leaf) {
-				Write-Verbose "Unblocking $FilePath"
-				$Win32_SUCCESS = 0
+            if (Test-Path -Path $FilePath -PathType Leaf) {
+                Write-Verbose "Unblocking $FilePath"
+                $Win32_SUCCESS = 0
                 $Win32_FILE_NOT_FOUND = 2
                 $zone_id_path = $FilePath + ':Zone.Identifier'
                 $result_code = [Win32.pinvoke]::Win32DeleteFile($zone_id_path)
-				if (-not ($Win32_SUCCESS,$Win32_FILE_NOT_FOUND) -contains $result_code) {
+                if (-not ($Win32_SUCCESS,$Win32_FILE_NOT_FOUND) -contains $result_code) {
                     Write-Error "Failed to unblock '$FilePath' the Win32 return code is '$result_code'."
                 }
-			} else { Write-Verbose "Ignoring non-file $FilePath" }
-		} catch { Write-Error ("Failed to unblock file. The error was: '{0}'." -f $_) } 
+            } else { Write-Verbose "Ignoring non-file $FilePath" }
+        } catch { Write-Error ("Failed to unblock file. The error was: '{0}'." -f $_) } 
     }
 }
