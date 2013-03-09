@@ -1,12 +1,7 @@
-function Test-IsAdmin {
-	try {
-		$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-		$principal = New-Object Security.Principal.WindowsPrincipal -ArgumentList $identity
-		return $principal.IsInRole( [Security.Principal.WindowsBuiltInRole]::Administrator )
-	} catch {
-		throw "Failed to determine if the current user has elevated privileges. The error was: '$_'." -f $_
-	}
-}
+$ErrorActionPreference = 'Stop'
+$this_path = Split-Path ((Get-Variable MyInvocation -Scope 0).Value).MyCommand.Path
+$sec_mod_path = Join-Path -Path $this_path -ChildPath 'Security.psm1' | Get-Item | Select -ExpandProperty FullName
+Import-Module -Name $sec_mod_path -Force
 
 if (-not (Test-IsAdmin)) {
 	#Re-launch elevated if not already running elevated.
@@ -15,10 +10,7 @@ if (-not (Test-IsAdmin)) {
 	exit 
 }
 
-$ErrorActionPreference = 'Stop'
-
 #region Install profiles.
-$this_path = Split-Path ((Get-Variable MyInvocation -Scope 0).Value).MyCommand.Path
 $profile_dir = Split-Path $PROFILE
 if (-not (Test-Path -Path $profile_dir -PathType Container)) {
     New-Item -Path $profile_dir -ItemType Directory -Force
@@ -32,6 +24,7 @@ push-location $this_path
 foreach ($file in $profile_files) {
 	$src_file = (Get-Item $file).FullName
 	copy-item $src_file $profile_dir -Force
+    Unblock-File -FilePath $src_file
 }
 pop-location
 #endregion
