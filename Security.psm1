@@ -1,3 +1,9 @@
+function Test-IsAdmin {  
+    return (([Security.Principal.WindowsPrincipal] `
+				[Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+					[Security.Principal.WindowsBuiltInRole] "Administrator"))    
+}
+
 function Unblock-File {
 	[cmdletbinding()]
 	param ([parameter(Mandatory=$true,  ValueFromPipelineByPropertyName=$true)]
