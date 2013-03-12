@@ -203,6 +203,8 @@ function Set-FirewallRule {
     
     # TODO accept objects from the pipeline
     # TODO warn when name matches more than one rule
+    # TODO see if an item in the rule collection can be directly modified: $fw.rules.item(?)
+    # TODO check about getting the rule uniquely based on HashCode
 }
 
 function Disable-FirewallRule {
