@@ -6,11 +6,11 @@ function Get-FirewallConfigObject {
 
 function Get-FirewallProfileBitmask {
     param (
-        [parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public', 'current', 'all')] [string[]] $Profile
+        [parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public', 'current', 'all')] [string[]] $Name
     )
     $fw = Get-FirewallConfigObject
     $profile_enum = @{domain = 1; private = 2; public = 4; all = 2147483647; current = $fw.CurrentProfileTypes; selected = 0}
-    $Profile | % {$profile_enum.selected = $profile_enum.selected -bor $profile_enum[$_]}
+    $Name | % {$profile_enum.selected = $profile_enum.selected -bor $profile_enum[$_]}
     return $profile_enum.selected
 }
 
@@ -18,8 +18,44 @@ function Set-FirewallProfileState {
     [cmdletbinding()]
     param ([int] $ProfileMask, [switch] $Enabled)
     $fw = Get-FirewallConfigObject
-    Write-Verbose "Disabling firewall profile: $profile_item"
+    Write-Verbose "Disabling firewall profile: $profile_name"
     $fw.FirewallEnabled($ProfileMask) = $Enabled
+}
+
+function Test-IsAdmin {  
+	return (([Security.Principal.WindowsPrincipal] `
+				[Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
+					[Security.Principal.WindowsBuiltInRole] "Administrator"))	
+}
+
+function Test-IsSupportedOS {
+    return ([Environment]::OSVersion.Version -ge (new-object 'Version' 6,0))
+}
+
+function Initialize {
+    if (-not (Test-IsAdmin)) {
+        throw 'This requires running as admin.'
+    }
+    if (-not (Test-IsSupportedOS)) {
+        throw 'This requires Windows Vista/2008 or greater.'
+    }
+}
+
+function Set-Netsh {
+    [cmdletbinding()] param (
+        [parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Name,
+        [string] $Operation,
+        [string] $Parameter,
+        [string] $Value
+    )
+    $netsh_profile_map = @{domain = 'domainprofile'; private = 'privateprofile'; public = 'publicprofile'}
+    foreach ($profile_name in $Name) {
+        $netsh_profile_name = $netsh_profile_map[$profile_name]
+        $arguments = 'advfirewall', 'set', $netsh_profile_name, $Operation, $Parameter, $Value
+        Write-Debug ("Running netsh.exe with arguments: " + $arguments)
+        $output = [string[]] (& netsh.exe $arguments 2>&1)
+        if ($LASTEXITCODE -ne 0) {throw $output[1]} # TODO do this in a cmdlety way
+    }
 }
 #endregion
 
@@ -29,60 +65,66 @@ function Get-FirewallRule {
     (Get-FirewallConfigObject).Rules
 }
 
-function Disable-FirewallProfile {
-    [cmdletbinding()]
-    param ([parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Profile)
-    foreach ($profile_item in $Profile) {
-        $profile_mask = Get-FirewallProfileBitmask -Profile $profile_item
-        Set-FirewallProfileState -ProfileMask $profile_mask -Enabled:$false
-    }
-}
-
-function Enable-FirewallProfile {
-    [cmdletbinding()]
-    param ([parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Profile)
-    foreach ($profile_item in $Profile) {
-        $profile_mask = Get-FirewallProfileBitmask -Profile $profile_item
-        Set-FirewallProfileState -ProfileMask $profile_mask -Enabled
-    }
-}
-
-function Set-InboundTrafficAction {
-    [cmdletbinding()]
-    param (
-        [parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Profile,
-        [parameter(Mandatory=$true)] [ValidateSet('allow', 'block', 'block_all', 'default')] [string] $Action
-    )
-    $fw = Get-FirewallConfigObject
-    $action_enum = @{block = 0; allow = 1; default = 0}
-    foreach ($profile_item in $Profile) {
-        $profile_mask = Get-FirewallProfileBitmask -Profile $profile_item
-        if ($Action -eq 'block_all') {
-            $fw.BlockAllInboundTraffic($profile_mask) = $true
-        } else {
-            $fw.BlockAllInboundTraffic($profile_mask) = $false
-            $fw.DefaultInboundAction($profile_mask) = $action_enum[$Action]
-        }
-    }
-}
-
-function Set-OutboundTrafficAction {
-    [cmdletbinding()]
-    param (
-        [parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Profile,
-        [parameter(Mandatory=$true)] [ValidateSet('allow', 'block', 'default')] [string] $Action
-    )
-    $fw = Get-FirewallConfigObject
-    $action_enum = @{block = 0; allow = 1; default = 1}
-    foreach ($profile_item in $Profile) {
-        $profile_mask = Get-FirewallProfileBitmask -Profile $profile_item
-        $fw.DefaultOutboundAction($profile_mask) = $action_enum[$Action]
-    }
+function Get-FirewallProfile {
+    # TODO create
 }
 
 function Set-FirewallProfile {
-    param ()
-    # TODO combine Set-InboundTrafficAction, Set-OutboundTrafficAction, Enable-FirewallProfile, Disable-FilewallProfile
+    [cmdletbinding(DefaultParameterSetName="ByName")]
+    param (
+        [parameter(ParameterSetName="ByName", Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Name,
+        [parameter()] [ValidateSet('True', 'False')] [string] $Enabled,
+        [parameter()] [ValidateSet('allow', 'block', 'block_all')] [string] $DefaultInboundAction,
+        [parameter()] [ValidateSet('allow', 'block')] [string] $DefaultOutboundAction,
+        [parameter()] [string] $LogFileName,
+        [parameter()] [string] $LogMaxSizeKilobytes,
+        [parameter()] [ValidateSet('True', 'False')] [string] $LogDroppedPackets,
+        [parameter()] [ValidateSet('True', 'False')] [string] $LogConnections,
+        [parameter()] [ValidateSet('True', 'False')] [string] $DisableNotifications,
+        [parameter()] [ValidateSet('True', 'False')] [string] $DisableUnicastResponse
+    )
+    process {
+        Initialize
+        $fw = Get-FirewallConfigObject
+        $action_enum = @{block = 0; allow = 1}
+        $netsh_action_map = @{True = 'enable'; False = 'disable'}
+
+        foreach ($profile_name in $Name) {
+            $profile_mask = Get-FirewallProfileBitmask -Name $profile_name
+
+            if ($PSBoundParameters.ContainsKey('Enabled')) {$fw.FirewallEnabled($profile_mask) = [boolean]::Parse($Enabled)}
+            
+            if ($PSBoundParameters.ContainsKey('DefaultInboundAction')) {
+                if ($DefaultInboundAction -eq 'block_all') {$fw.BlockAllInboundTraffic($profile_mask) = $true
+                } else {
+                    $fw.BlockAllInboundTraffic($profile_mask) = $false
+                    $fw.DefaultInboundAction($profile_mask) = $action_enum[$DefaultInboundAction]}
+            }
+            
+            if ($PSBoundParameters.ContainsKey('DefaultOutboundAction')) {
+                $fw.DefaultOutboundAction($profile_mask) = $action_enum[$DefaultOutboundAction]}
+            
+            if ($PSBoundParameters.ContainsKey('LogFileName')) {
+                if ($LogFileName -eq 'default') {$LogFileName = '%systemroot%\system32\LogFiles\Firewall\pfirewall.log'}
+                Set-Netsh -Name $profile_name -Operation 'logging' -Parameter filename -Value $LogFileName}
+            
+            if ($PSBoundParameters.ContainsKey('LogMaxSizeKilobytes')) {
+                if ($LogMaxSizeKilobytes -eq 'default') {$LogMaxSizeKilobytes = 4096}
+                Set-Netsh -Name $profile_name -Operation 'logging' -Parameter maxfilesize -Value $LogMaxSizeKilobytes}
+            
+            if ($PSBoundParameters.ContainsKey('LogDroppedPackets')) {
+                Set-Netsh -Name $profile_name -Operation 'logging' -Parameter droppedconnections -Value ($netsh_action_map[$LogDroppedPackets])}
+            
+            if ($PSBoundParameters.ContainsKey('LogConnections')) {
+                Set-Netsh -Name $profile_name -Operation 'logging' -Parameter allowedconnections -Value ($netsh_action_map[$LogConnections])}
+            
+            if ($PSBoundParameters.ContainsKey('DisableNotifications')) {
+                $fw.NotificationsDisabled($profile_mask) = [boolean]::Parse($DisableNotifications)}
+            
+            if ($PSBoundParameters.ContainsKey('DisableUnicastResponse')) {
+                $fw.UnicastResponsesToMulticastBroadcastDisabled($profile_mask) = [boolean]::Parse($DisableUnicastResponse)}
+        }
+    }
 }
 
 function New-FirewallRule {
@@ -113,7 +155,7 @@ function New-FirewallRule {
                 $action_enum = @{allow = 1; block = 0}
                 $direction_enum = @{in = 1; out = 2}
                 $protocol_enum = @{ICMPv4 = 1; ICMPv6 = 58; tcp = 6; udp = 17}
-                $profile_mask = Get-FirewallProfileBitmask -Profile $Profile
+                $profile_mask = Get-FirewallProfileBitmask -Name $Profile
 
                 # reference: http://msdn.microsoft.com/en-us/library/windows/desktop/aa365344(v=vs.85).aspx
                 # reference: http://msdn.microsoft.com/en-us/library/bb945065.aspx
@@ -186,7 +228,7 @@ function Set-FirewallRule {
     [cmdletbinding()]
     param ( 
         [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateScript({$_ -notmatch '^all$|\|'})] [string] $Name, 
-        [parameter(ParameterSetName="Make")] [ValidateScript({-not ($_.Contains('|')})] [string] $Description = $null,
+        [parameter(ParameterSetName="Make")] [ValidateScript({-not $_.Contains('|')})] [string] $Description = $null,
         [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateScript({$_ -match '^\d{1,5}$|^\d{1,5}-\d{1,5}$'})] [string[]] $Port, # Supported Format: '80','443','8000-8009'
         [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateSet('tcp', 'udp')] [string] $Protocol,
         [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateSet('in', 'out')] [string] $Direction,
@@ -205,6 +247,7 @@ function Set-FirewallRule {
     # TODO warn when name matches more than one rule
     # TODO see if an item in the rule collection can be directly modified: $fw.rules.item(?)
     # TODO check about getting the rule uniquely based on HashCode
+    # TODO combine Disable|Enable-FirewallRule here
 }
 
 function Disable-FirewallRule {
@@ -245,6 +288,5 @@ function Enable-FirewallRule {
 #endregion
 
 Export-ModuleMember -Function Get-FirewallRule, 
-        Disable-FirewallProfile, Enable-FirewallProfile,
-        Set-InboundTrafficAction, Set-OutboundTrafficAction, 
-        New-FirewallRule, Remove-FirewallRule, Disable-FirewallRule, Enable-FirewallRule
+        Get-FirewallProfile, Set-FirewallProfile,
+        New-FirewallRule, Remove-FirewallRule, Set-FirewallRule, Disable-FirewallRule, Enable-FirewallRule
