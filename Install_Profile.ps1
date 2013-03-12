@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $this_path = Split-Path ((Get-Variable MyInvocation -Scope 0).Value).MyCommand.Path
-$sec_mod_path = Join-Path -Path $this_path -ChildPath 'Security.psm1' | Get-Item | Select -ExpandProperty FullName
+$sec_mod_path = Join-Path -Path $this_path -ChildPath 'Modules\Security\Security.psm1' | Get-Item | Select -ExpandProperty FullName
 Import-Module -Name $sec_mod_path -Force
 
 if (-not (Test-IsAdmin)) {
