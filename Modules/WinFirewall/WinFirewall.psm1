@@ -25,14 +25,13 @@ function Set-FirewallProfileState {
 
 #region Exports
 function Get-FirewallRule {
+    # TODO support some filters
     (Get-FirewallConfigObject).Rules
 }
 
 function Disable-FirewallProfile {
     [cmdletbinding()]
-    param (
-        [parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Profile
-    )
+    param ([parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Profile)
     foreach ($profile_item in $Profile) {
         $profile_mask = Get-FirewallProfileBitmask -Profile $profile_item
         Set-FirewallProfileState -ProfileMask $profile_mask -Enabled:$false
@@ -41,9 +40,7 @@ function Disable-FirewallProfile {
 
 function Enable-FirewallProfile {
     [cmdletbinding()]
-    param (
-        [parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Profile
-    )
+    param ([parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Profile)
     foreach ($profile_item in $Profile) {
         $profile_mask = Get-FirewallProfileBitmask -Profile $profile_item
         Set-FirewallProfileState -ProfileMask $profile_mask -Enabled
@@ -83,12 +80,17 @@ function Set-OutboundTrafficAction {
     }
 }
 
+function Set-FirewallProfile {
+    param ()
+    # TODO combine Set-InboundTrafficAction, Set-OutboundTrafficAction, Enable-FirewallProfile, Disable-FilewallProfile
+}
+
 function New-FirewallRule {
     [cmdletbinding()]
     param ( 
         [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateScript({$_ -notmatch '^all$|\|'})] [string] $Name, 
         [parameter(ParameterSetName="Make")] [ValidateScript({$_ -notmatch '\|'})] [string] $Description = $null,
-        [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateScript({$_ -match '^\d{1,5}$|^\d{1,5}-\d{1,5}$'})] [string[]] $Ports, # Supported Format: '80','443','8000-8009'
+        [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateScript({$_ -match '^\d{1,5}$|^\d{1,5}-\d{1,5}$'})] [string[]] $Port, # Supported Format: '80','443','8000-8009'
         [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateSet('tcp', 'udp')] [string] $Protocol = 'tcp',
         [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateSet('in', 'out')] [string] $Direction = 'in',
         [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateSet('allow', 'block')] [string] $Action = 'allow',
@@ -124,7 +126,7 @@ function New-FirewallRule {
                 if ($ServiceShortName) { $rule.serviceName = $ServiceShortName }
                 # GUI: Protocols and Ports
                 $rule.Protocol = $protocol_enum[$Protocol]
-                $rule.LocalPorts = ($Ports -join ',') # protocal must be set first!
+                $rule.LocalPorts = ($Port -join ',') # protocal must be set first!
                 $rule.RemotePorts = '*'
                 # GUI: Scope
                 $rule.LocalAddresses = '*'
@@ -162,27 +164,50 @@ function New-FirewallRule {
 
 function Remove-FirewallRule {
     [cmdletbinding()]
-    param (
-        [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)] [string[]] $Name
-    )
+    param ([parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)] [string[]] $Name)
     process {
+        # TODO accept rule object and re-add all rules with the same name except the one matching all properties
+        # TODO support wildcards
+        # TODO support -Confirm and -Whatif
         $fw = Get-FirewallConfigObject
         foreach ($rule_name in $Name) {
             $fw.Rules | ? {$_.Name -eq $rule_name} | % {
                 $rule = $_
                 $rule_print = ($rule | gm -MemberType Property | % {"{0} : {1}" -f $_.Name, $rule."$($_.Name)"}) -join "`n"
                 Write-Verbose ("Removing firewall rule:`n" + $rule_print)
+                # TODO warn when multiple rules matched
                 $fw.Rules.Remove($rule_name)
             }
         }
     }
 }
 
+function Set-FirewallRule {
+    [cmdletbinding()]
+    param ( 
+        [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateScript({$_ -notmatch '^all$|\|'})] [string] $Name, 
+        [parameter(ParameterSetName="Make")] [ValidateScript({-not ($_.Contains('|')})] [string] $Description = $null,
+        [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateScript({$_ -match '^\d{1,5}$|^\d{1,5}-\d{1,5}$'})] [string[]] $Port, # Supported Format: '80','443','8000-8009'
+        [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateSet('tcp', 'udp')] [string] $Protocol,
+        [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateSet('in', 'out')] [string] $Direction,
+        [parameter(ParameterSetName="Make", Mandatory=$true)] [ValidateSet('allow', 'block')] [string] $Action,
+        [parameter(ParameterSetName="Make")] [ValidateSet('domain', 'private', 'public', 'current', 'all')] [string[]] $Profile = 'all',
+        [parameter(ParameterSetName="Make")] [ValidateSet("RemoteAccess", "Wireless", "Lan", "All")] [string[]] $InterfaceTypes = 'All',
+        [parameter(ParameterSetName="Make")] [switch] $Disabled,
+        [parameter(ParameterSetName="Make")] [string] $GroupingName = '',
+        [parameter(ParameterSetName="Make")] [string] $ApplicationPath = '',
+        [parameter(ParameterSetName="Make")] [ValidateScript({ ((gsv | Select -Exp Name) + '*') -contains $_})] [string] $ServiceShortName = '',
+        [parameter(ParameterSetName="Make")] [string[]] $InterfaceNames = '',
+        [parameter(ParameterSetName="Made")] $FirewallRuleObject
+    )
+    
+    # TODO accept objects from the pipeline
+    # TODO warn when name matches more than one rule
+}
+
 function Disable-FirewallRule {
     [cmdletbinding()]
-    param (
-        [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)] [string[]] $Name
-    )
+    param ([parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)] [string[]] $Name)
     process {
         $fw = Get-FirewallConfigObject
         foreach ($rule_name in $Name) {
@@ -200,9 +225,7 @@ function Disable-FirewallRule {
 
 function Enable-FirewallRule {
     [cmdletbinding()]
-    param (
-        [parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)] [string[]] $Name
-    )
+    param ([parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)] [string[]] $Name)
     process {
         $fw = Get-FirewallConfigObject
         foreach ($rule_name in $Name) {
