@@ -5,41 +5,38 @@ function Test-IsAdmin {
 }
 
 function Unblock-File {
-	[cmdletbinding(DefaultParameterSetName="ByName", SupportsShouldProcess=$True)]
-	param (
+    [cmdletbinding(DefaultParameterSetName="ByName", SupportsShouldProcess=$True)]
+    param (
         [parameter(Mandatory=$true, ParameterSetName="ByName", Position=0)] [string] $FilePath,
         [parameter(Mandatory=$true, ParameterSetName="ByInput", ValueFromPipeline=$true)] $InputObject
-	)
-	begin {
-		Add-Type -Namespace Win32 -Name PInvoke -MemberDefinition @"
-    // http://msdn.microsoft.com/en-us/library/windows/desktop/aa363915(v=vs.85).aspx
-    [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool DeleteFile(string name);
-    public static int Win32DeleteFile(string filePath) {bool gone = DeleteFile(filePath); return Marshal.GetLastWin32Error();}
+    )
+    begin {
+        Add-Type -Namespace Win32 -Name PInvoke -MemberDefinition @"
+        // http://msdn.microsoft.com/en-us/library/windows/desktop/aa363915(v=vs.85).aspx
+        [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DeleteFile(string name);
+        public static int Win32DeleteFile(string filePath) {bool gone = DeleteFile(filePath); return Marshal.GetLastWin32Error();}
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    static extern int GetFileAttributes(string lpFileName);
-    public static bool Win32FileExists(string filePath) {return GetFileAttributes(filePath) != -1;}
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        static extern int GetFileAttributes(string lpFileName);
+        public static bool Win32FileExists(string filePath) {return GetFileAttributes(filePath) != -1;}
 "@
-	}
-	process {
+    }
+    process {
         switch ($PSCmdlet.ParameterSetName) {
-            'ByName' { 
-                    $input_path = (Resolve-Path -Path $FilePath).Path 
-                    if ([IO.File]::Exists($input_path)) { $input_file = Get-Item -Path $input_path }
-                }
-            'ByInput' { if ($InputObject -is [System.IO.FileInfo]) { $input_file = $InputObject } }
+            'ByName'  {$input_paths = Resolve-Path -Path $FilePath | ? {[IO.File]::Exists($_.Path)} | Select -Exp Path}
+            'ByInput' {if ($InputObject -is [System.IO.FileInfo]) {$input_paths = $InputObject.FullName}}
         }
-        if ($input_file) {     
-            if ([Win32.PInvoke]::Win32FileExists($input_file.FullName + ':Zone.Identifier')) {
-                if ($PSCmdlet.ShouldProcess($input_file.FullName)) {
-                    $result_code = [Win32.PInvoke]::Win32DeleteFile($input_file.FullName + ':Zone.Identifier')
+        $input_paths | % {     
+            if ([Win32.PInvoke]::Win32FileExists($_ + ':Zone.Identifier')) {
+                if ($PSCmdlet.ShouldProcess($_)) {
+                    $result_code = [Win32.PInvoke]::Win32DeleteFile($_ + ':Zone.Identifier')
                     if ($result_code -ne 0) {
-                        Write-Error ("Failed to unblock '{0}' the Win32 return code is '{1}'." -f $input_file.FullName, $result_code)
+                        Write-Error ("Failed to unblock '{0}' the Win32 return code is '{1}'." -f $_, $result_code)
                     }
                 }
             }
-		}
-	}
+        }
+    }
 }
