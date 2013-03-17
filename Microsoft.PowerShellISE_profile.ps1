@@ -85,13 +85,11 @@ function Duplicate-Line
     $editor = $psISE.CurrentFile.Editor
     $caret_row = $editor.CaretLine
     $caret_col = $editor.CaretColumn
-    $this_line_text = $editor.CaretLineText
-    $line_count = $psISE.CurrentFile.Editor.LineCount
+    $this_line_text = $editor.Text.Split("`n")[$caret_row - 1].TrimEnd([environment]::NewLine)
     $editor.SetCaretPosition($caret_row, $this_line_text.length + 1)
-    $editor.InsertText("`n" + $this_line_text)    
+    $editor.InsertText("`r`n" + $this_line_text)    
     $editor.SetCaretPosition($caret_row, $caret_col)
 }
-
 
 #requires -version 2.0
 ## ISE-Comments module v 1.1
