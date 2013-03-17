@@ -85,9 +85,10 @@ function Duplicate-Line
     $editor = $psISE.CurrentFile.Editor
     $caret_row = $editor.CaretLine
     $caret_col = $editor.CaretColumn
-    $caret_line = $editor.CaretLineText
-    $editor.SetCaretPosition($caret_row + 1, 1)
-    $editor.InsertText($caret_line + "`n")
+    $this_line_text = $editor.CaretLineText
+    $line_count = $psISE.CurrentFile.Editor.LineCount
+    $editor.SetCaretPosition($caret_row, $this_line_text.length + 1)
+    $editor.InsertText("`n" + $this_line_text)    
     $editor.SetCaretPosition($caret_row, $caret_col)
 }
 
