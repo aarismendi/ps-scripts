@@ -20,7 +20,8 @@ Write-Host "Running New-FirewallRule Tests" -ForegroundColor Magenta
 Write-Host "Running Set-FirewallRule Tests" -ForegroundColor Magenta
 . "$this_path\Test\Set-FirewallRule.Test.ps1"
 
-# TODO . "$this_path\Test\Remove-FirewallRule.Test.ps1"
+Write-Host "Running Remove-FirewallRule Tests" -ForegroundColor Magenta
+. "$this_path\Test\Remove-FirewallRule.Test.ps1"
 # TODO . "$this_path\Test\Get-FirewallRule.Test.ps1"
 # TODO . "$this_path\Test\Get-FirewallProfile.Test.ps1"
 # TODO . "$this_path\Test\Set-FirewallProfile.Test.ps1"
@@ -30,5 +31,6 @@ Write-Host "Running Set-FirewallRule Tests" -ForegroundColor Magenta
     Write-Host "Restoring original firewall config."
     if (Test-Path -Path $wfw_file_path -PathType Leaf) {
         & netsh.exe advfirewall import "$wfw_file_path"
+        Remove-Item -Path $wfw_file_path -Force
     }
 }

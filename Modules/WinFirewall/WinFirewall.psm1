@@ -156,7 +156,7 @@ function New-FirewallRule {
         [string] 
             $Program,
         [ValidateScript( 
-            {(0..255 -contains $_) -or 'Any','TCP','UDP','ICMPv4','ICMPv6' -contains $_}
+            {(0..255 -contains $_) -or ('Any','TCP','UDP','ICMPv4','ICMPv6' -contains $_)}
         )] [string] 
             $Protocol,
         [ValidateScript( # Can be any|Defaultgateway|DHCP|WINS|LocalSubnet|IPv(4|6)addr or range|netmask or IPv4addr/cidr
@@ -172,59 +172,59 @@ function New-FirewallRule {
         )] [string] 
             $Service	    
 	)
-
-	Initialize
-	$fw = Get-FirewallConfigObject
-  	$action_enum = @{Allow = 1; Block = 0}
-	$direction_enum = @{Inbound = 1; Outbound = 2}
-	$protocol_enum = @{any = 256; ICMPv4 = 1; ICMPv6 = 58; TCP = 6; UDP = 17}
+    begin {Initialize; $fw = Get-FirewallConfigObject}
+    process {
+  	    $action_enum = @{Allow = 1; Block = 0}
+	    $direction_enum = @{Inbound = 1; Outbound = 2}
+	    $protocol_enum = @{any = 256; ICMPv4 = 1; ICMPv6 = 58; TCP = 6; UDP = 17}
 	
-    $rule = New-Object -ComObject HNetCfg.FWRule 
-	# doc: http://msdn.microsoft.com/en-us/library/windows/desktop/aa365344(v=vs.85).aspx
-	# doc: http://msdn.microsoft.com/en-us/library/bb945065.aspx
-	$rule.Name = $Name
-    $rule.Enabled = ([bool]::Parse($Enabled))
-    if ($PSBoundParameters.ContainsKey('Description'))      {$rule.Description = $Description}
-	if ($PSBoundParameters.ContainsKey('Action'))           {$rule.Action = $action_enum[$Action]}
-	if ($PSBoundParameters.ContainsKey('Program'))          {$rule.ApplicationName = $Program}
-	if ($PSBoundParameters.ContainsKey('Service'))          {$rule.serviceName = $Service}
-	if ($PSBoundParameters.ContainsKey('Protocol'))         {
-        $i = 0
-        if ([int]::TryParse($Protocol, [ref] $i)) {$rule.Protocol = $i}
-        else {$rule.Protocol = $protocol_enum[$Protocol]}
-    }
-	if ($PSBoundParameters.ContainsKey('LocalPort'))        {
-        if ($Protocol -match '^TCP$|^UDP$') {$rule.LocalPorts = ($LocalPort -join ',')}
-        else {Write-Error "The Protocol parameter must be specified as TCP or UDP when specifiying the LocalPort parameter"}
-    } #LocalPort - requires Protocol to be TCP|UDP
-    if ($PSBoundParameters.ContainsKey('IcmpType'))         {$rule.IcmpTypesAndCodes = $IcmpType.Replace('any','*')}
-	if ($PSBoundParameters.ContainsKey('RemotePort'))       {
-        if ($Protocol -match '^TCP$|^UDP$') {$rule.RemotePorts = ($RemotePort -join ',')}
-        else {Write-Error "The Protocol parameter must be specified as TCP or UDP when specifiying the RemotePort parameter"}
-    }
-	if ($PSBoundParameters.ContainsKey('LocalAddress'))     {$rule.LocalAddresses = ($LocalAddress -join ',')}
-	if ($PSBoundParameters.ContainsKey('RemoteAddress'))    {$rule.RemoteAddresses = ($RemoteAddress -join ',') -replace 'any', '*'}
-	if ($PSBoundParameters.ContainsKey('InterfaceType'))    {$rule.InterfaceTypes = ($InterfaceType -join ',')}
-	if ($PSBoundParameters.ContainsKey('Direction'))        {$rule.Direction = $direction_enum[$Direction]}
-	if ($PSBoundParameters.ContainsKey('Group'))            {$rule.Grouping = $Group}
+        $rule = New-Object -ComObject HNetCfg.FWRule 
+	    # doc: http://msdn.microsoft.com/en-us/library/windows/desktop/aa365344(v=vs.85).aspx
+	    # doc: http://msdn.microsoft.com/en-us/library/bb945065.aspx
+	    $rule.Name = $Name
+        $rule.Enabled = ([bool]::Parse($Enabled))
+        if ($PSBoundParameters.ContainsKey('Description'))      {$rule.Description = $Description}
+	    if ($PSBoundParameters.ContainsKey('Action'))           {$rule.Action = $action_enum[$Action]}
+	    if ($PSBoundParameters.ContainsKey('Program'))          {$rule.ApplicationName = $Program}
+	    if ($PSBoundParameters.ContainsKey('Service'))          {$rule.serviceName = $Service}
+	    if ($PSBoundParameters.ContainsKey('Protocol'))         {
+            $i = 0
+            if ([int]::TryParse($Protocol, [ref] $i)) {$rule.Protocol = $i}
+            else {$rule.Protocol = $protocol_enum[$Protocol]}
+        }
+	    if ($PSBoundParameters.ContainsKey('LocalPort'))        {
+            if ($Protocol -match '^TCP$|^UDP$') {$rule.LocalPorts = ($LocalPort -join ',')}
+            else {Write-Error "The Protocol parameter must be specified as TCP or UDP when specifiying the LocalPort parameter"}
+        } #LocalPort - requires Protocol to be TCP|UDP
+        if ($PSBoundParameters.ContainsKey('IcmpType'))         {$rule.IcmpTypesAndCodes = $IcmpType.Replace('any','*')}
+	    if ($PSBoundParameters.ContainsKey('RemotePort'))       {
+            if ($Protocol -match '^TCP$|^UDP$') {$rule.RemotePorts = ($RemotePort -join ',')}
+            else {Write-Error "The Protocol parameter must be specified as TCP or UDP when specifiying the RemotePort parameter"}
+        }
+	    if ($PSBoundParameters.ContainsKey('LocalAddress'))     {$rule.LocalAddresses = ($LocalAddress -join ',')}
+	    if ($PSBoundParameters.ContainsKey('RemoteAddress'))    {$rule.RemoteAddresses = ($RemoteAddress -join ',') -replace 'any', '*'}
+	    if ($PSBoundParameters.ContainsKey('InterfaceType'))    {$rule.InterfaceTypes = ($InterfaceType -join ',')}
+	    if ($PSBoundParameters.ContainsKey('Direction'))        {$rule.Direction = $direction_enum[$Direction]}
+	    if ($PSBoundParameters.ContainsKey('Group'))            {$rule.Grouping = $Group}
     
-    if ($PSBoundParameters.ContainsKey('InterfaceAlias')) {	
-        $nic_names = @(); $nic_names += $InterfaceAlias
-	    $rule.Interfaces = $nic_names 
-    }
-    if ($PSBoundParameters.ContainsKey('Profile')) {
-        $profile_mask = Get-FirewallProfileBitmask -Name $Profile
-        $rule.Profiles = $profile_mask
-    }
+        if ($PSBoundParameters.ContainsKey('InterfaceAlias')) {	
+            $nic_names = @(); $nic_names += $InterfaceAlias
+	        $rule.Interfaces = $nic_names 
+        }
+        if ($PSBoundParameters.ContainsKey('Profile')) {
+            $profile_mask = Get-FirewallProfileBitmask -Name $Profile
+            $rule.Profiles = $profile_mask
+        }
 
-	$rule_print = ($rule | gm -MemberType Property | Select -ExpandProperty Name | 
-                        ? {$rule."$_"} | % {"{0}={1}" -f $_, $rule."$_"}) -join " "
-    Write-Debug $rule_print
-    if ($PSCmdlet.ShouldProcess($rule_print)) {
-	    try {
-            $fw.Rules.Add($rule)
-            $PSCmdlet.WriteObject($rule)
-        } catch {$PSCmdlet.WriteError($_)}
+	    $rule_print = ($rule | gm -MemberType Property | Select -ExpandProperty Name | 
+                            ? {$rule."$_"} | % {"{0}={1}" -f $_, $rule."$_"}) -join " "
+        Write-Debug $rule_print
+        if ($PSCmdlet.ShouldProcess($rule_print)) {
+	        try {
+                $fw.Rules.Add($rule)
+                $PSCmdlet.WriteObject($rule)
+            } catch {$PSCmdlet.WriteError($_)}
+        }
     }
 }
 function Remove-FirewallRule {
@@ -234,14 +234,16 @@ function Remove-FirewallRule {
             $Name,
         [parameter(ParameterSetName="ByAttribute")] [switch] 
             $All,
-        [parameter(ParameterSetName="ByAttribute")] [ValidateSet('in','out')] [string] 
+        [parameter(ParameterSetName="ByAttribute")] [ValidateSet('Inbound','Outbound')] [string] 
             $Direction,
-        [parameter(ParameterSetName="ByAttribute")] [ValidateSet('domain','private','public')] [string[]] 
+        [parameter(ParameterSetName="ByAttribute")] [ValidateSet('Domain','Private','Public')] [string[]] 
             $Profile,
         [parameter(ParameterSetName="ByAttribute")] 
         [ValidateScript({((New-Object -ComObject HNetCfg.FWRule).RemoteAddresses = ($_ -join ',')) -ne $null})] [string[]] 
             $RemoteAddress,
-        [parameter(ParameterSetName="ByAttribute")] [ValidateSet('tcp','udp', 'ICMPv4', 'ICMPv6')] [string[]] 
+        [parameter(ParameterSetName="ByAttribute")]  [ValidateScript( 
+            {(0..255 -contains $_) -or ($_ -match '^icmpv4$|^icmpv6$|^icmpv4:\d{1,3},\d{1,3}$|^icmpv6:\d{1,3},\d{1,3}$|^tcp$|^udp$|^any$')}
+        )] [string] 
             $Protocol,
         [parameter(ParameterSetName="ByAttribute")] [ValidatePattern('^\d{1,5}$|^\d{1,5}-\d{1,5}$')] [string[]] 
             $LocalPort,
@@ -260,30 +262,33 @@ function Remove-FirewallRule {
             netsh supports the following attributes for selecting rules to remove. 
             netsh is more powerful than the COM API for rule removal.
             name=all|<string>
+            [dir=in|out]
             [profile=public|private|domain|any[,...]]
-            [remoteip=any|localsubnet|dns|dhcp|wins|defaultgateway|<IPv4 address>|<IPv6 address>|<subnet>|<range>|<list>]
-            [remoteport=0-65535|<port range>[,...]|any]
             [program=<program path>]
             [service=<service short name>|any]
-            [protocol=0-255|icmpv4|icmpv6|icmpv4:type,code|icmpv6:type,code|tcp|udp|any]
+            [localip=any|<IPv4 address>|<IPv6 address>|<subnet>|<range>|<list>]
+            [remoteip=any|localsubnet|dns|dhcp|wins|defaultgateway|<IPv4 address>|<IPv6 address>|<subnet>|<range>|<list>]
             [localport=0-65535|<port range>[,...]|RPC|RPC-EPMap|any]
+            [remoteport=0-65535|<port range>[,...]|any]
+            [protocol=0-255|icmpv4|icmpv6|icmpv4:type,code|icmpv6:type,code|tcp|udp|any]
         #>
         if ($fw.Rules.Count) {
-            $direction_enum     = @{1 = 'in'; 2 = 'out'}
-            $direction_enum_rev = @{'in' = 1; 'out' = 2}
+            $direction_enum      = @{1 = 'in'; 2 = 'out'}
+            $direction_enum_rev  = @{'in' = 1; 'out' = 2}
+            $direction_name_enum = @{'Inbound' = 'in'; 'Outbound' = 'out'}
 
             if ($PSCmdlet.ParameterSetName -eq 'ByAttribute') {                
                 $arguments = @()
                 if ($All) {$arguments += ('name=all')}
                 else      {$arguments += ('name={0}' -f $Name)}
-                if ($PSBoundParameters.ContainsKey('Direction'))     {$arguments += ('dir={0}'        -f $Direction                 )}
-		        if ($PSBoundParameters.ContainsKey('Profile'))       {$arguments += ('profile={0}'    -f ($Profile -join ',')       )}
-		        if ($PSBoundParameters.ContainsKey('RemoteAddress')) {$arguments += ('remoteip={0}'   -f ($RemoteAddress -join ',') )}
-		        if ($PSBoundParameters.ContainsKey('Protocol'))      {$arguments += ('protocol={0}'   -f ($Protocol -join ',')      )}
-		        if ($PSBoundParameters.ContainsKey('LocalPort'))     {$arguments += ('localport={0}'  -f ($LocalPort -join ',')     )}
-		        if ($PSBoundParameters.ContainsKey('RemotePort'))    {$arguments += ('remoteport={0}' -f ($RemotePort -join ',')    )}
-		        if ($PSBoundParameters.ContainsKey('Program'))       {$arguments += ('program={0}'    -f $Program                   )}
-		        if ($PSBoundParameters.ContainsKey('Service'))       {$arguments += ('service={0}'    -f $Service                   )}
+                if ($PSBoundParameters.ContainsKey('Direction'))     {$arguments += ('dir={0}'        -f $direction_name_enum[$Direction] )}
+		        if ($PSBoundParameters.ContainsKey('Profile'))       {$arguments += ('profile={0}'    -f ($Profile -join ',')             )}
+		        if ($PSBoundParameters.ContainsKey('RemoteAddress')) {$arguments += ('remoteip={0}'   -f ($RemoteAddress -join ',')       )}
+		        if ($PSBoundParameters.ContainsKey('Protocol'))      {$arguments += ('protocol={0}'   -f $Protocol                        )}
+		        if ($PSBoundParameters.ContainsKey('LocalPort'))     {$arguments += ('localport={0}'  -f ($LocalPort -join ',')           )}
+		        if ($PSBoundParameters.ContainsKey('RemotePort'))    {$arguments += ('remoteport={0}' -f ($RemotePort -join ',')          )}
+		        if ($PSBoundParameters.ContainsKey('Program'))       {$arguments += ('program={0}'    -f $Program                         )}
+		        if ($PSBoundParameters.ContainsKey('Service'))       {$arguments += ('service={0}'    -f $Service                         )}
             } else {
                 $rule = $InputObject
                 $arguments = @()
@@ -306,10 +311,10 @@ function Remove-FirewallRule {
                     }
                 }
             }
-            $msg = ('Removing firewall rule with: netsh.exe ' + ($arguments -join ' '))
+            
             if ($PSCmdlet.ShouldProcess(($arguments -join ' '))) {
-                Write-Debug $msg
                 $arguments = ('advfirewall', 'firewall', 'delete', 'rule') + $arguments
+                Write-Debug ('Removing firewall rule with: netsh.exe ' + ($arguments -join ' '))
                 $output = [string] (& netsh.exe $arguments 2>$1)
                 if ($LASTEXITCODE -ne 0) {
                     if (-not $output.Contains('No rules match the specified criteria')) {
@@ -368,7 +373,7 @@ function Set-FirewallRule {
             $Program,
 		[parameter(HelpMessage='Specifies that network packets with matching protocol match this rule.')]
         [ValidateScript( 
-            {(0..255 -contains $_) -or 'Any','TCP','UDP','ICMPv4','ICMPv6' -contains $_}
+            {(0..255 -contains $_) -or ('Any','TCP','UDP','ICMPv4','ICMPv6' -contains $_)}
         )] [string] 
             $Protocol,
 		[parameter(HelpMessage='Specifies that network packets with matching IP addresses match this rule.')]
