@@ -228,7 +228,8 @@ function New-FirewallRule {
     }
 }
 function Remove-FirewallRule {
-	[cmdletbinding(DefaultParameterSetName="ByAttribute", SupportsShouldProcess=$True, ConfirmImpact='Medium')] param ( 
+	[cmdletbinding(DefaultParameterSetName="ByAttribute", SupportsShouldProcess=$True, ConfirmImpact='Medium')] 
+    param ( 
         [parameter(ParameterSetName="ByAttribute")] [string[]] 
             $Name,
         [parameter(ParameterSetName="ByAttribute")] [switch] 
@@ -271,20 +272,7 @@ function Remove-FirewallRule {
             $direction_enum     = @{1 = 'in'; 2 = 'out'}
             $direction_enum_rev = @{'in' = 1; 'out' = 2}
 
-            if ($PSCmdlet.ParameterSetName -eq 'ByAttribute') {
-                <# experimental
-                $filtered_rules = @()
-                $rules = $fw.Rules
-                if ($PSBoundParameters.ContainsKey('Direction'))     {$filtered_rules += $rules | ? {$_.Direction -eq $direction_enum_rev[$Direction]}}
-                if ($PSBoundParameters.ContainsKey('RemoteAddress')) {$filtered_rules += $rules | ? {$_.RemoteAddress -eq $null}}
-                if ($PSBoundParameters.ContainsKey('Protocol'))      {$filtered_rules += $rules | ? {$_.Protocol -eq $null}}
-                if ($PSBoundParameters.ContainsKey('LocalPort'))     {$filtered_rules += $rules | ? {$_.LocalPort -eq $null}}
-                if ($PSBoundParameters.ContainsKey('RemotePort'))    {$filtered_rules += $rules | ? {$_.RemotePort -eq $null}}
-                if ($PSBoundParameters.ContainsKey('Program'))       {$filtered_rules += $rules | ? {$_.Program -eq $Program}}
-                if ($PSBoundParameters.ContainsKey('Service'))       {$filtered_rules += $rules | ? {$_.Service -eq $Service}}
-                if ($PSBoundParameters.ContainsKey('Profile'))       {$filtered_rules += $rules | ? {$_.Profile -eq $null}}
-                #>
-                
+            if ($PSCmdlet.ParameterSetName -eq 'ByAttribute') {                
                 $arguments = @()
                 if ($All) {$arguments += ('name=all')}
                 else      {$arguments += ('name={0}' -f $Name)}
@@ -296,7 +284,6 @@ function Remove-FirewallRule {
 		        if ($PSBoundParameters.ContainsKey('RemotePort'))    {$arguments += ('remoteport={0}' -f ($RemotePort -join ',')    )}
 		        if ($PSBoundParameters.ContainsKey('Program'))       {$arguments += ('program={0}'    -f $Program                   )}
 		        if ($PSBoundParameters.ContainsKey('Service'))       {$arguments += ('service={0}'    -f $Service                   )}
-
             } else {
                 $rule = $InputObject
                 $arguments = @()
