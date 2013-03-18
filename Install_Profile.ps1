@@ -24,7 +24,7 @@ push-location $this_path
 foreach ($file in $profile_files) {
 	$src_file = (Get-Item $file).FullName
 	copy-item $src_file $profile_dir -Force
-    Unblock-File $src_file
+    Unblock-File $src_file -Verbose
 }
 pop-location
 #endregion
@@ -32,11 +32,12 @@ pop-location
 #region Install Fonts.
 Add-Type -AssemblyName System.Drawing | Out-Null
 $fonts = New-Object System.Drawing.Text.InstalledFontCollection
-$font_fams = $fonts.Families
+$font_fams = $fonts.Families | Select -ExpandProperty Name
 $console_font_reg_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console\TrueTypeFont'
-$console_font_id = Get-ItemProperty $console_font_reg_path | % {
-        $_.psbase.properties | ? {$_.Name.StartsWith('0')} 
-    } | Select -exp Name -Last 1
+$console_font_id = (Get-ItemProperty $console_font_reg_path).psbase.Properties | 
+    ? {$_.Name.StartsWith('0')} | 
+        Sort -Property Name | 
+            Select -ExpandProperty Name -Last 1
 $font_path = (Get-Item (Join-Path $this_path 'fonts')).FullName
 $FONTS = 0x14
 $objShell = New-Object -ComObject Shell.Application
@@ -46,14 +47,14 @@ dir -Path $font_path -Filter *.ttf | % {
     $font_col.AddFontFile($_.FullName)
     $font_name = $font_col.Families[0].Name
     
-    if (-not $font_fams -contains $font_name) {
+    if (-not ($font_fams -contains $font_name)) {
         $objFolder.CopyHere($_.FullName)
     }
 
     $console_font_id += '0'
     $is_registered = (Get-ItemProperty $console_font_reg_path).psbase.properties | ? {$_.Value -eq $font_name}    
     if (-not $is_registered) {
-        New-ItemProperty -Path $console_font_reg_path -Name $console_font_id -Value $font_name
+        New-ItemProperty -Path $console_font_reg_path -Name $console_font_id -Value $font_name | Out-Null
     }
 }
 #endregion
