@@ -16,7 +16,8 @@ function Unblock-File {
         [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool DeleteFile(string name);
-        public static int Win32DeleteFile(string filePath) {bool gone = DeleteFile(filePath); return Marshal.GetLastWin32Error();}
+        public static int Win32DeleteFile(string filePath) {
+            bool is_gone = DeleteFile(filePath); return Marshal.GetLastWin32Error();}
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         static extern int GetFileAttributes(string lpFileName);
@@ -32,7 +33,7 @@ function Unblock-File {
             if ([Win32.PInvoke]::Win32FileExists($_ + ':Zone.Identifier')) {
                 if ($PSCmdlet.ShouldProcess($_)) {
                     $result_code = [Win32.PInvoke]::Win32DeleteFile($_ + ':Zone.Identifier')
-                    if ($result_code -ne 0) {
+                    if ([Win32.PInvoke]::Win32FileExists($_ + ':Zone.Identifier')) {
                         Write-Error ("Failed to unblock '{0}' the Win32 return code is '{1}'." -f $_, $result_code)
                     }
                 }
