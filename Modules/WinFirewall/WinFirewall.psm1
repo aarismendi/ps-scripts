@@ -245,9 +245,15 @@ function Remove-FirewallRule {
             {(0..255 -contains $_) -or ($_ -match '^icmpv4$|^icmpv6$|^icmpv4:\d{1,3},\d{1,3}$|^icmpv6:\d{1,3},\d{1,3}$|^tcp$|^udp$|^any$')}
         )] [string] 
             $Protocol,
-        [parameter(ParameterSetName="ByAttribute")] [ValidatePattern('^\d{1,5}$|^\d{1,5}-\d{1,5}$')] [string[]] 
+        [parameter(ParameterSetName="ByAttribute")]         
+        [ValidateScript( # Protocol must be TCP|UDP. Can be 1-65535-1-65535 | 1-65535
+            {($_.Split('-') | ? {1..65535 -contains $_}).Count -eq $_.Split('-').Count}
+        )] [string[]] 
             $LocalPort,
-        [parameter(ParameterSetName="ByAttribute")] [ValidatePattern('^\d{1,5}$|^\d{1,5}-\d{1,5}$')] [string[]] 
+        [parameter(ParameterSetName="ByAttribute")] 
+        [ValidateScript( # Same as LocalPort
+            {($_.Split('-') | ? {1..65535 -contains $_}).Count -eq $_.Split('-').Count}
+        )] [string[]] 
             $RemotePort,
         [parameter(ParameterSetName="ByAttribute")] [string] 
             $Program,
@@ -285,8 +291,14 @@ function Remove-FirewallRule {
 		        if ($PSBoundParameters.ContainsKey('Profile'))       {$arguments += ('profile={0}'    -f ($Profile -join ',')             )}
 		        if ($PSBoundParameters.ContainsKey('RemoteAddress')) {$arguments += ('remoteip={0}'   -f ($RemoteAddress -join ',')       )}
 		        if ($PSBoundParameters.ContainsKey('Protocol'))      {$arguments += ('protocol={0}'   -f $Protocol                        )}
-		        if ($PSBoundParameters.ContainsKey('LocalPort'))     {$arguments += ('localport={0}'  -f ($LocalPort -join ',')           )}
-		        if ($PSBoundParameters.ContainsKey('RemotePort'))    {$arguments += ('remoteport={0}' -f ($RemotePort -join ',')          )}
+		        if ($PSBoundParameters.ContainsKey('LocalPort'))     {
+                    if ($Protocol -match '^TCP$|^UDP$') {$arguments += ('localport={0}'  -f ($LocalPort -join ','))}
+                    else {Write-Error "The Protocol parameter must be specified as TCP or UDP when specifiying the LocalPort parameter"; break}
+                }
+		        if ($PSBoundParameters.ContainsKey('RemotePort'))    {
+                    if ($Protocol -match '^TCP$|^UDP$') {$arguments += ('remoteport={0}'  -f ($RemotePort -join ','))}
+                    else {Write-Error "The Protocol parameter must be specified as TCP or UDP when specifiying the RemotePort parameter"; break}
+                }
 		        if ($PSBoundParameters.ContainsKey('Program'))       {$arguments += ('program={0}'    -f $Program                         )}
 		        if ($PSBoundParameters.ContainsKey('Service'))       {$arguments += ('service={0}'    -f $Service                         )}
             } else {
@@ -295,19 +307,22 @@ function Remove-FirewallRule {
                 $rule | gm -MemberType Property | Select -ExpandProperty Name | ? {$rule."$_"} | % {
                     $property_name = $_
                     switch ($property_name) {
-                        Direction       {$arguments += ('dir={0}'        -f $direction_enum[$rule."$_"])}
+                        Direction       {$arguments += ('dir={0}'        -f $direction_enum[$rule.Direction])}
                         Name            {$arguments += ('name={0}'       -f $rule.Name)}
-                        RemoteAddresses {$arguments += ('remoteip={0}'   -f $rule."$_".Replace('*', 'any'))} 
-                        RemotePorts     {$arguments += ('remoteport={0}' -f $rule."$_".Replace('*', 'any'))} 
-                        ApplicationName {$arguments += ('program={0}'    -f $rule."$_")} 
-                        serviceName     {$arguments += ('service={0}'    -f $rule."$_")}  
-                        LocalPorts      {$arguments += ('localport={0}'  -f $rule."$_".Replace('*', 'any'))}
+                        RemoteAddresses {$arguments += ('remoteip={0}'   -f $rule.RemoteAddresses.Replace('*', 'any'))} 
+                        RemotePorts     {$arguments += ('remoteport={0}' -f $rule.RemotePorts.Replace('*', 'any'))} 
+                        ApplicationName {$arguments += ('program={0}'    -f $rule.ApplicationName)} 
+                        serviceName     {$arguments += ('service={0}'    -f $rule.serviceName)}  
+                        LocalPorts      {$arguments += ('localport={0}'  -f $rule.LocalPorts.Replace('*', 'any'))}
                         Profiles        { # convert mask to list of names
                                          $profile_enum = @{1 = 'domain'; 2 = 'private'; 4 = 'public'}
-                                         $profile_mask = $rule."$_"
+                                         $profile_mask = $rule.Profiles
                                          $profile_list = ($profile_enum.Keys | ? {$profile_mask -band $_} | % {$profile_enum[$_]}) -join ','
                                          $arguments += ('profile={0}'    -f $profile_list)} 
-                        Protocol        {$arguments += ('protocol={0}'   -f $rule."$_".ToString().Replace('256','any'))} 
+                        Protocol        {
+                               if 
+                               $arguments += ('protocol={0}'   -f $rule."$_".ToString().Replace('256','any'))
+                        } 
                     }
                 }
             }

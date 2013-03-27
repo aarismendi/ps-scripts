@@ -2,7 +2,7 @@ cls
 # Reset environment
 Remove-Variable * -ErrorAction SilentlyContinue
 
-$ErrorActionPreference = 'Stop'
+#$ErrorActionPreference = 'Stop'
 $this_path = Split-Path ((Get-Variable MyInvocation -Scope 0).Value).MyCommand.Path
 
 Import-Module -Name "$this_path\WinFirewall.psm1" -Force -Verbose
