@@ -117,9 +117,9 @@ function Set-FirewallProfile {
 
 #region Rules ##############################################################################
 function Get-FirewallRule {
-	# TODO support some filters
 	(Get-FirewallConfigObject).Rules
 }
+
 function New-FirewallRule {
 	[cmdletbinding(SupportsShouldProcess=$True)] 
     param (
@@ -282,6 +282,7 @@ function Remove-FirewallRule {
             $direction_enum      = @{1 = 'in'; 2 = 'out'}
             $direction_enum_rev  = @{'in' = 1; 'out' = 2}
             $direction_name_enum = @{'Inbound' = 'in'; 'Outbound' = 'out'}
+            $protocol_enum_rev = @{256 = 'any'; 1 = 'ICMPv4'; 58 = 'ICMPv6'; 6 = 'TCP'; 17 = 'UDP'}
 
             if ($PSCmdlet.ParameterSetName -eq 'ByAttribute') {                
                 $arguments = @()
@@ -320,8 +321,11 @@ function Remove-FirewallRule {
                                          $profile_list = ($profile_enum.Keys | ? {$profile_mask -band $_} | % {$profile_enum[$_]}) -join ','
                                          $arguments += ('profile={0}'    -f $profile_list)} 
                         Protocol        {
-                               if 
-                               $arguments += ('protocol={0}'   -f $rule."$_".ToString().Replace('256','any'))
+                            if ($rule.IcmpTypesAndCodes) {
+                                $arguments += ('protocol={0}:{1}' -f $protocol_enum_rev[$rule.Protocol], $rule.IcmpTypesAndCodes.Replace(':',',').Replace('*','any'))
+                            } else {
+                                $arguments += ('protocol={0}' -f $rule.Protocol.ToString().Replace('256','any'))
+                            }
                         } 
                     }
                 }

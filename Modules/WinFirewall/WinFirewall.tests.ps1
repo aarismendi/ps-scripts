@@ -13,7 +13,7 @@ $wfw_file_path = Join-Path -Path $env:TEMP -ChildPath $wfw_file_name
 & netsh.exe advfirewall export "$wfw_file_path"
 
 try {
-Remove-FirewallRule -All -Verbose
+Remove-FirewallRule -All
 Write-Host "Running New-FirewallRule Tests" -ForegroundColor Magenta
 . "$this_path\Test\New-FirewallRule.Test.ps1"
 
@@ -28,8 +28,8 @@ Write-Host "Running Remove-FirewallRule Tests" -ForegroundColor Magenta
 } catch {
     $_
 } finally {
-    Write-Host "Restoring original firewall config."
     if (Test-Path -Path $wfw_file_path -PathType Leaf) {
+        Write-Host "Restoring original firewall config."
         & netsh.exe advfirewall import "$wfw_file_path"
         Remove-Item -Path $wfw_file_path -Force
     }
