@@ -29,6 +29,15 @@ foreach ($file in $profile_files) {
 pop-location
 #endregion
 
+#region Install Modules.
+$mod_path = $env:PSModulePath.Split(';') | ? {$_.Contains($env:USERPROFILE)} | Select -First 1
+dir "$this_path\Modules" | ? {$_.PsIsContainer} | % {
+    $dest = Join-Path -Path $mod_path -ChildPath $_.Name
+    if (Test-Path -Path $dest) {Remove-Item -Recurse -Force -Path $dest}
+    Copy-Item -Path $_.FullName -Destination $dest -Recurse
+}
+#endregion
+
 #region Install Fonts.
 Add-Type -AssemblyName System.Drawing | Out-Null
 $fonts = New-Object System.Drawing.Text.InstalledFontCollection
