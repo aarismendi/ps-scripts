@@ -3,7 +3,6 @@ function Get-FirewallConfigObject {
 	# http://msdn.microsoft.com/en-us/library/windows/desktop/aa365309(v=vs.85).aspx
 	return New-Object -ComObject HNetCfg.FwPolicy2
 }
-
 function Get-FirewallProfileBitmask {
 	[cmdletbinding()] param (
 		[parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public', 'current', 'all')] [string[]] $Name)
@@ -12,17 +11,14 @@ function Get-FirewallProfileBitmask {
 	$Name | % {$profile_enum.selected = $profile_enum.selected -bor $profile_enum[$_]}
 	return $profile_enum.selected
 }
-
 function Test-IsAdmin {  
 	return (([Security.Principal.WindowsPrincipal] `
 				[Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
 					[Security.Principal.WindowsBuiltInRole] "Administrator"))	
 }
-
 function Test-IsSupportedOS {
 	return ([Environment]::OSVersion.Version -ge (new-object 'Version' 6,0))
 }
-
 function Initialize {
 	if (-not (Test-IsAdmin)) {
 		throw 'This requires running as admin.'
@@ -31,7 +27,6 @@ function Initialize {
 		throw 'This requires Windows Vista/2008 or greater.'
 	}
 }
-
 function Set-Netsh {
 	[cmdletbinding()] param (
 		[parameter(Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Name,
@@ -56,7 +51,6 @@ function Set-Netsh {
 function Get-FirewallProfile {
 	# TODO create
 }
-
 function Set-FirewallProfile {
 	[cmdletbinding(DefaultParameterSetName="ByName")] param (
 		[parameter(ParameterSetName="ByName", Mandatory=$true)] [ValidateSet('domain', 'private', 'public')] [string[]] $Name,
@@ -119,7 +113,6 @@ function Set-FirewallProfile {
 function Get-FirewallRule {
 	(Get-FirewallConfigObject).Rules
 }
-
 function New-FirewallRule {
 	[cmdletbinding(SupportsShouldProcess=$True)] 
     param (
@@ -468,3 +461,4 @@ function Set-FirewallRule {
 #endregion Rules ###########################################################################
 #endregion Exports
 
+Export-ModuleMember -Function Get-FirewallProfile, Set-FirewallProfile, Get-FirewallRule, New-FirewallRule, Remove-FirewallRule, Set-FirewallRule
