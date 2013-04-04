@@ -26,7 +26,9 @@ Write-Host "Running Remove-FirewallRule Tests" -ForegroundColor Magenta
 Write-Host "Running Get-FirewallRule Tests" -ForegroundColor Magenta
 . "$this_path\Get-FirewallRule.Test.ps1"
 
-# TODO . "$this_path\Get-FirewallProfile.Test.ps1"
+Write-Host "Running Get-FirewallProfile Tests" -ForegroundColor Magenta
+. "$this_path\Get-FirewallProfile.Test.ps1"
+
 # TODO . "$this_path\Set-FirewallProfile.Test.ps1"
 } catch {
     $_
