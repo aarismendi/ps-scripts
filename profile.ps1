@@ -27,7 +27,11 @@ function Out-Clipboard {
 		$ps.Runspace = $rs
 		$ps.AddScript({
 			Add-Type -AssemblyName 'System.Windows.Forms'
-			[System.Windows.Forms.Clipboard]::SetText(($data -join "`n"))
+            $tmp_file = [IO.Path]::GetTempFileName()
+            $data | Out-File -FilePath $tmp_file -Encoding Unicode
+            $formatted_data = Get-Content -Path $tmp_file -Encoding Unicode
+            Remove-Item -Path $tmp_file -ErrorAction SilentlyContinue -Force
+			[System.Windows.Forms.Clipboard]::SetText(($formatted_data -join "`n"))
 		}).Invoke()
 	}
 }
