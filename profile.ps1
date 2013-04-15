@@ -37,11 +37,8 @@ function Out-Clipboard {
                 }
                 [System.Windows.Forms.Clipboard]::SetFileDropList($file_list)
             } else {
-                $tmp_file = [IO.Path]::GetTempFileName()
-                $data | Out-File -FilePath $tmp_file -Encoding Unicode
-                $formatted_data = Get-Content -Path $tmp_file -Encoding Unicode
-                Remove-Item -Path $tmp_file -ErrorAction SilentlyContinue -Force
-			    [System.Windows.Forms.Clipboard]::SetText(($formatted_data -join "`n"))
+                $sdata = ($data | Out-String) -split "`n"
+			    [System.Windows.Forms.Clipboard]::SetText($sdata)
             }
 		}).Invoke()
 	}
