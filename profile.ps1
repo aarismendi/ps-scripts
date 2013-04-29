@@ -37,8 +37,8 @@ function Out-Clipboard {
                 }
                 [System.Windows.Forms.Clipboard]::SetFileDropList($file_list)
             } else {
-                $sdata = ($data | Out-String) -split "`n"
-			    [System.Windows.Forms.Clipboard]::SetText($sdata)
+				$host_out = (($data | Out-String -Width 1000) -split "`n" | % {$_.TrimEnd()}) -join "`n"
+			    [System.Windows.Forms.Clipboard]::SetText($host_out)
             }
 		}).Invoke()
 	}
