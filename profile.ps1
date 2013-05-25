@@ -82,3 +82,45 @@ function Out-Clipboard {
 		}).Invoke()
 	}
 }
+
+function Select-Folder {
+	[cmdletbinding()]
+	param (
+		[string] $Message = "Select Directory:", [System.Environment+SpecialFolder] $RootFolder
+	)
+	begin {}
+	process {
+		$ps = [PowerShell]::Create()
+		$rs = [RunSpaceFactory]::CreateRunspace()
+		$rs.ApartmentState = "STA"
+		$rs.ThreadOptions = "ReuseThread"
+		$rs.Open()
+		$sel_path = $null
+		$rs.SessionStateProxy.SetVariable("sel_path", $sel_path)
+		$rs.SessionStateProxy.SetVariable("Message", $Message)
+		$rs.SessionStateProxy.SetVariable("RootFolder", $RootFolder)
+		$ps.Runspace = $rs
+		$ps.AddScript({
+			Add-Type -AssemblyName System.Windows.Forms
+			$folder_browser = New-Object -TypeName Windows.Forms.FolderBrowserDialog
+			$folder_browser.Description = $Message
+			$folder_browser.RootFolder = $RootFolder
+			$outer = New-Object -TypeName System.Windows.Forms.Form
+			$outer.StartPosition = [Windows.Forms.FormStartPosition] "Manual"
+			$outer.Location = New-Object System.Drawing.Point -500, -500
+			$outer.Size = New-Object System.Drawing.Size 0, 0
+			$outer.add_Shown({ 
+				$outer.Activate()
+				$result = $folder_browser.ShowDialog($outer)
+				$outer.Close()
+			})
+			$outer.ShowDialog() | Out-Null
+			if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+				$sel_path = $folder_browser.SelectedPath
+			}
+		}).Invoke()
+		$sel_path = $rs.SessionStateProxy.GetVariable("sel_path")
+		if ($sel_path) {return $sel_path}
+	}
+	end {}
+}
