@@ -77,8 +77,8 @@ function Out-Clipboard {
 						[System.Windows.Forms.Clipboard]::SetFileDropList($file_list)
 			} else {
 				$non_printable = '[\x20\x00\x08\x0B\x0C\x0E-\x1F]+?$'
-				$host_out = (($data | Out-String -Width 2000) -split "`n" | % 
-					{$_.TrimEnd() -replace $non_printable, ''}) -join "`n"
+				$host_out = (($data | Out-String -Width 2000) -split "`n" | 
+                    ForEach-Object {$_.TrimEnd() -replace $non_printable, ''}) -join "`n"
 				[System.Windows.Forms.Clipboard]::SetText($host_out)
 			}
 		}).Invoke()
