@@ -31,7 +31,7 @@ function Out-Clipboard {
 			Add-Type -AssemblyName 'System.Windows.Forms'
             if ($do_file_copy) {
                  $file_list = New-Object -TypeName System.Collections.Specialized.StringCollection
-                 $data | % {
+                 $data | ForEach-Object {
                     if ($_ -is [System.IO.FileInfo]) {[void]$file_list.Add($_.FullName)} 
                     elseif ([IO.File]::Exists($_))   {[void]$file_list.Add($_)}
                 }
