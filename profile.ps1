@@ -127,7 +127,7 @@ function Select-Folder {
 	end {}
 }
 
-function Invoke-Command {
+function Invoke-Executable {
 	param ([string] $Path, [string[]] $Arguments, [string] $WorkingDir, [switch] $IgnoreExitCode
 	)
 	try {
@@ -139,11 +139,11 @@ function Invoke-Command {
 		$ErrorActionPreference = $pref
 		if ($WorkingDir) {pop-location}
 		if ((-not $IgnoreExitCode) -and (@(0) -notcontains $LASTEXITCODE)) {
-			throw ("Failed to execute command {0} with arguments: {1}. The exit code was {2} and the output was {3}." -f $Path, ($Arguments -join ' '), $LASTEXITCODE,$out)
+			throw ("Failed to invoke executable {0} with arguments: {1}. The exit code was {2} and the output was {3}." -f $Path, ($Arguments -join ' '), $LASTEXITCODE,$out)
 		} else {
 			return $result
 		}
 	} catch {
-		Write-Error ('Failed to invoke command {0} with arguments: {1}. The error was: {2} {3}.' -f $Path, ($Arguments -join ' '), $_, $_.InvocationInfo.PositionMessage)
+		Write-Error ('Failed to invoke executable {0} with arguments: {1}. The error was: {2} {3}.' -f $Path, ($Arguments -join ' '), $_, $_.InvocationInfo.PositionMessage)
 	}
 }
