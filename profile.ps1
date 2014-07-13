@@ -68,19 +68,6 @@ function Out-Clipboard {
 		$ps.Runspace = $rs
 		$ps.AddScript({
 			Add-Type -AssemblyName 'System.Windows.Forms'
-<<<<<<< HEAD
-            if ($do_file_copy) {
-                 $file_list = New-Object -TypeName System.Collections.Specialized.StringCollection
-                 $data | ForEach-Object {
-                    if ($_ -is [System.IO.FileInfo]) {[void]$file_list.Add($_.FullName)} 
-                    elseif ([IO.File]::Exists($_))   {[void]$file_list.Add($_)}
-                }
-                [System.Windows.Forms.Clipboard]::SetFileDropList($file_list)
-            } else {
-                $sdata = ($data | Out-String) -split "`n"
-			    [System.Windows.Forms.Clipboard]::SetText($sdata)
-            }
-=======
 			if ($do_file_copy) {
 				$file_list = New-Object -TypeName System.Collections.Specialized.StringCollection
 				$data | % {
@@ -133,7 +120,6 @@ function Select-Folder {
 			if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
 				$sel_path = $folder_browser.SelectedPath
 			}
->>>>>>> 8f5bcc22c1ccbc6942e054c22146cb22ab5b0599
 		}).Invoke()
 		$sel_path = $rs.SessionStateProxy.GetVariable("sel_path")
 		if ($sel_path) {return $sel_path}
